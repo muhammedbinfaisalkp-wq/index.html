@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SEO Lab</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 1rem;
+    }
+    nav a {
+      color: #fff;
+      margin: 0 1rem;
+      text-decoration: none;
+    }
+    section {
+      background: #fff;
+      margin: 2rem;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    textarea, input {
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+    }
+    button {
+      background: #0078d7;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    pre {
+      background: #eee;
+      padding: 1rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #333;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SEO Lab – Web Visibility Playground</h1>
+    <nav>
+      <a href="#validator">HTML Validator</a>
+      <a href="#snippet">Snippet Generator</a>
+      <a href="#benchmark">Benchmark Dashboard</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="validator">
+      <h2>HTML Validator</h2>
+      <textarea id="htmlInput" placeholder="Paste your HTML here..."></textarea>
+      <button onclick="validateHTML()">Validate</button>
+      <pre id="validationResult"></pre>
+    </section>
+
+    <section id="snippet">
+      <h2>SEO Snippet Generator</h2>
+      <input id="titleInput" placeholder="Page Title">
+      <input id="descInput" placeholder="Meta Description">
+      <button onclick="generateSnippet()">Generate</button>
+      <pre id="snippetResult"></pre>
+    </section>
+
+    <section id="benchmark">
+      <h2>Benchmark Dashboard</h2>
+      <input id="urlInput" placeholder="Enter website URL">
+      <button onclick="runBenchmark()">Run Benchmark</button>
+      <pre id="benchmarkResult"></pre>
+
+      <input id="sitemapInput" placeholder="Enter sitemap URL">
+      <button onclick="checkSitemap()">Check Sitemap</button>
+      <pre id="sitemapResult"></pre>
+
+      <input id="liveUrlInput" placeholder="Enter URL to check live status">
+      <button onclick="checkLiveStatus()">Check Live Status</button>
+      <pre id="liveStatusResult"></pre>
+
+      <input id="seoAuditInput" placeholder="Enter URL for SEO Tag Audit">
+      <button onclick="runSeoAudit()">Run SEO Audit</button>
+      <pre id="seoAuditResult"></pre>
+
+      <input id="robotsInput" placeholder="Enter robots.txt URL">
+      <button onclick="checkRobots()">Check robots.txt</button>
+      <pre id="robotsResult"></pre>
+
+      <input id="faviconInput" placeholder="Enter site URL for favicon check">
+      <button onclick="checkFavicon()">Check Favicon</button>
+      <pre id="faviconResult"></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 SEO Lab</p>
+  </footer>
+
+  <script>
+    const proxy = "https://api.allorigins.win/get?url=";
+
+    async function fetchText(url) {
+      try {
+        const response = await fetch(proxy + encodeURIComponent(url));
+        const data = await response.json();
+        return data.contents;
+      } catch (err) {
+        throw new Error("Fetch failed. Try a different URL or check CORS.");
+      }
+    }
+
+    function validateHTML() {
+      const html = document.getElementById("htmlInput").value;
+      const hasTitle = /<title>.*<\/title>/i.test(html);
+      const hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(html);
+      const hasOG = /<meta[^>]*property=["']og:title["'][^>]*>/i.test(html);
+      const result = {
+        title: hasTitle,
+        meta_description: hasMetaDesc,
+        og_tags: hasOG
+      };
+      document.getElementById("validationResult").textContent = JSON.stringify(result, null, 2);
+    }
+
+    function generateSnippet() {
+      const title = document.getElementById("titleInput").value;
+      const desc = document.getElementById("descInput").value;
+      const snippet = `
+<title>${title}</title>
+<meta name="description" content="${desc}">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${desc}">
+      `;
+      document.getElementById("snippetResult").textContent = snippet;
+    }
+
+    async function runBenchmark() {
+      const url = document.getElementById("urlInput").value;
+      try {
+        const text = await fetchText(url);
+        const sizeKB = (text.length / 1024).toFixed(2);
+        const mobileFriendly = text.includes("viewport");
+        document.getElementById("benchmarkResult").textContent = JSON.stringify({ size_kb: sizeKB, mobile_friendly: mobileFriendly }, null, 2);
+      } catch (err) {
+        document.getElementById("benchmarkResult").textContent = err.message;
+      }
+    }
+
+    async function checkSitemap() {
+      const url = document.getElementById("sitemapInput").value;
+      try {
+        const text = await fetchText(url);
+        const isXML = text.includes("<urlset") || text.includes("<sitemapindex");
+        const urls = [...text.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1]);
+        document.getElementById("sitemapResult").textContent = JSON.stringify({ valid_sitemap: isXML, url_count: urls.length, sample_urls: urls.slice(0, 5) }, null, 2);
+      } catch (err) {
+        document.getElementById("sitemapResult").textContent = err.message;
+      }
+    }
+
+   async function checkLiveStatus() {
+  const url = document.getElementById("liveUrlInput").value;
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+  try {
+    const response = await fetch(proxyUrl, { method: "HEAD" });
+    const result = {
+      status: response.status,
+      ok: response.ok,
+      redirected: response.redirected
+    };
+    document.getElementById("liveStatusResult").textContent = JSON.stringify(result, null, 2);
+  } catch (err) {
+    document.getElementById("liveStatusResult").textContent = "Error: " + err.message;
+  }
+}
+
+
+    async function runSeoAudit() {
+      const url = document.getElementById("seoAuditInput").value;
+      try {
+        const text = await fetchText(url);
+        const hasTitle = /<title>.*<\/title>/i.test(text);
+        const hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(text);
+        const hasCanonical = /<link[^>]*rel=["']canonical["'][^>]*>/i.test(text);
+        const hasH1 = /<h1>.*<\/h1>/i.test(text);
+        const hasSchema = /<script[^>]*type=["']application\/ld\+json["'][^>]*>/i.test(text);
+        document.getElementById("seoAuditResult").textContent = JSON.stringify({ title_tag: hasTitle, meta_description: hasMetaDesc, canonical_tag: hasCanonical, h1_tag: hasH1, structured_data: hasSchema }, null, 2);
+      } catch (err) {
+        document.getElementById("seoAuditResult").textContent = err.message;
+      }
+    }
+
+    async function checkRobots() {
+      const url = document.getElementById("robotsInput").value;
+      try {
+        const text = await fetchText(url);
+        const disallows = [...text.matchAll(/Disallow:\s*(.*)/gi)].map(m => m[1]);
+        const allows = [...text.matchAll(/Allow:\s*(.*)/gi)].map(m => m[1]);
+        const sitemapRefs = [...text.matchAll(/Sitemap:\s*(.*)/gi)].map(m => m[1]);
+        document.getElementById("robotsResult").textContent = JSON.stringify({ disallowed_paths: disallows, allowed_paths: allows, sitemap_links: sitemapRefs }, null, 2);
+      } catch (err) {
+        document.getElementById("robotsResult").textContent = err.message;
+      }
+    }
+
+        async function checkFavicon() {
+      const site = document.getElementById("faviconInput").value;
+      const faviconUrl = site.endsWith("/") ? site + "favicon.ico" : site + "/favicon.ico";
+      try {
+        const response = await fetch(faviconUrl, { method: "HEAD" });
+        const result = {
+          favicon_url: faviconUrl,
+          status: response.status,
+          found: response.ok
+        };
+        document.getElementById("faviconResult").textContent = JSON.stringify(result, null, 2);
+      } catch (err) {
+        document.getElementById("faviconResult").textContent = "Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
+
